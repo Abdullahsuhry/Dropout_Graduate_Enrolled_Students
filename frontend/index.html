@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dropout Predictor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .form-container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .predict-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .predict-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .predict-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-container {
+            display: none;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .result-container.active {
+            display: block;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .result-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-right: 15px;
+        }
+
+        .result-dropout {
+            background: #fee;
+            color: #c00;
+        }
+
+        .result-enrolled {
+            background: #ffc;
+            color: #c90;
+        }
+
+        .result-graduate {
+            background: #efe;
+            color: #0a0;
+        }
+
+        .result-title {
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        .confidence-bar {
+            margin: 20px 0;
+        }
+
+        .confidence-label {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .risk-factors {
+            margin-top: 20px;
+        }
+
+        .risk-factors h3 {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .risk-factors ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .risk-factors li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+            color: #555;
+        }
+
+        .risk-factors li:before {
+            content: "• ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .info-box {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .info-box h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .info-box p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c00;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 Student Dropout Prediction System</h1>
+            <p>AI-powered prediction using Random Forest (76.95% accuracy)</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="form-container">
+            <form id="predictionForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="maritalStatus">Marital Status</label>
+                        <select id="maritalStatus" name="maritalStatus" required>
+                            <option value="1">Single</option>
+                            <option value="2">Married</option>
+                            <option value="3">Widower</option>
+                            <option value="4">Divorced</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="applicationMode">Application Mode</label>
+                        <input type="number" id="applicationMode" name="applicationMode" value="1" min="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="applicationOrder">Application Order</label>
+                        <input type="number" id="applicationOrder" name="applicationOrder" value="1" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="course">Course</label>
+                        <input type="number" id="course" name="course" value="171" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="daytimeAttendance">Daytime/Evening Attendance</label>
+                        <select id="daytimeAttendance" name="daytimeAttendance" required>
+                            <option value="1">Daytime</option>
+                            <option value="0">Evening</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="previousQualification">Previous Qualification</label>
+                        <input type="number" id="previousQualification" name="previousQualification" value="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="previousQualificationGrade">Previous Qualification Grade</label>
+                        <input type="number" id="previousQualificationGrade" name="previousQualificationGrade" value="120" step="0.1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nationality">Nationality</label>
+                        <input type="number" id="nationality" name="nationality" value="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mothersQualification">Mother's Qualification</label>
+                        <input type="number" id="mothersQualification" name="mothersQualification" value="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fathersQualification">Father's Qualification</label>
+                        <input type="number" id="fathersQualification" name="fathersQualification" value="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mothersOccupation">Mother's Occupation</label>
+                        <input type="number" id="mothersOccupation" name="mothersOccupation" value="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fathersOccupation">Father's Occupation</label>
+                        <input type="number" id="fathersOccupation" name="fathersOccupation" value="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="admissionGrade">Admission Grade</label>
+                        <input type="number" id="admissionGrade" name="admissionGrade" value="120" step="0.1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="displaced">Displaced</label>
+                        <select id="displaced" name="displaced" required>
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="educationalSpecialNeeds">Educational Special Needs</label>
+                        <select id="educationalSpecialNeeds" name="educationalSpecialNeeds" required>
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="debtor">Debtor</label>
+                        <select id="debtor" name="debtor" required>
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tuitionFeesUpToDate">Tuition Fees Up to Date</label>
+                        <select id="tuitionFeesUpToDate" name="tuitionFeesUpToDate" required>
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" required>
+                            <option value="1">Male</option>
+                            <option value="0">Female</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="scholarshipHolder">Scholarship Holder</label>
+                        <select id="scholarshipHolder" name="scholarshipHolder" required>
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ageAtEnrollment">Age at Enrollment</label>
+                        <input type="number" id="ageAtEnrollment" name="ageAtEnrollment" value="18" min="17" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="international">International</label>
+                        <select id="international" name="international" required>
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curricularUnits1stSemCredited">1st Sem Units Credited</label>
+                        <input type="number" id="curricularUnits1stSemCredited" name="curricularUnits1stSemCredited" value="0" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curricularUnits1stSemEnrolled">1st Sem Units Enrolled</label>
+                        <input type="number" id="curricularUnits1stSemEnrolled" name="curricularUnits1stSemEnrolled" value="6" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curricularUnits1stSemEvaluations">1st Sem Evaluations</label>
+                        <input type="number" id="curricularUnits1stSemEvaluations" name="curricularUnits1stSemEvaluations" value="6" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curricularUnits1stSemApproved">1st Sem Units Approved</label>
+                        <input type="number" id="curricularUnits1stSemApproved" name="curricularUnits1stSemApproved" value="6" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curricularUnits1stSemGrade">1st Sem Grade</label>
+                        <input type="number" id="curricularUnits1stSemGrade" name="curricularUnits1stSemGrade" value="12" step="0.1" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curricularUnits1stSemWithoutEvaluations">1st Sem Without Evaluations</label>
+                        <input type="number" id="curricularUnits1stSemWithoutEvaluations" name="curricularUnits1stSemWithoutEvaluations" value="0" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curricularUnits2ndSemCredited">2nd Sem Units Credited</label>
+                        <input type="number" id="curricularUnits2ndSemCredited" name="curricularUnits2ndSemCredited" value="0" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curricularUnits2ndSemEnrolled">2nd Sem Units Enrolled</label>
+                        <input type="number" id="curricularUnits2ndSemEnrolled" name="curricularUnits2ndSemEnrolled" value="6" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curricularUnits2ndSemEvaluations">2nd Sem Evaluations</label>
+                        <input type="number" id="curricularUnits2ndSemEvaluations" name="curricularUnits2ndSemEvaluations" value="6" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curricularUnits2ndSemApproved">2nd Sem Units Approved</label>
+                        <input type="number" id="curricularUnits2ndSemApproved" name="curricularUnits2ndSemApproved" value="6" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curricularUnits2ndSemGrade">2nd Sem Grade</label>
+                        <input type="number" id="curricularUnits2ndSemGrade" name="curricularUnits2ndSemGrade" value="12" step="0.1" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="curricularUnits2ndSemWithoutEvaluations">2nd Sem Without Evaluations</label>
+                        <input type="number" id="curricularUnits2ndSemWithoutEvaluations" name="curricularUnits2ndSemWithoutEvaluations" value="0" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="unemploymentRate">Unemployment Rate</label>
+                        <input type="number" id="unemploymentRate" name="unemploymentRate" value="10.8" step="0.1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inflationRate">Inflation Rate</label>
+                        <input type="number" id="inflationRate" name="inflationRate" value="1.4" step="0.1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gdp">GDP</label>
+                        <input type="number" id="gdp" name="gdp" value="1.74" step="0.01" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="predict-btn" id="predictBtn">Predict Student Outcome</button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px; color: #666;">Analyzing student data...</p>
+            </div>
+        </div>
+
+        <div class="result-container" id="resultContainer">
+            <div class="result-header">
+                <div class="result-icon" id="resultIcon">?</div>
+                <div>
+                    <div class="result-title" id="resultTitle">Prediction Result</div>
+                </div>
+            </div>
+
+            <div class="confidence-bar">
+                <div class="confidence-label" id="confidenceLabel">Confidence: 0%</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+                </div>
+            </div>
+
+            <div class="risk-factors" id="riskFactorsContainer" style="display: none;">
+                <h3>Key Factors:</h3>
+                <ul id="riskFactorsList"></ul>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h3>About the Model</h3>
+            <p>This prediction system uses a Random Forest classifier trained on student academic and demographic data. 
+            The model achieved 76.95% accuracy on the test set. Key factors include academic performance, 
+            financial status, and enrollment patterns. This tool is meant to assist in early intervention, 
+            not as a definitive judgment.</p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/predict';
+
+        document.getElementById('predictionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {};
+            
+            for (let [key, value] of formData.entries()) {
+                data[key] = parseFloat(value);
+            }
+
+            document.getElementById('predictBtn').disabled = true;
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('resultContainer').classList.remove('active');
+            document.getElementById('errorMessage').classList.remove('active');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Prediction failed');
+                }
+
+                const result = await response.json();
+                displayResult(result);
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('errorMessage').textContent = 'Error: Unable to connect to the prediction server. Please make sure the Flask backend is running.';
+                document.getElementById('errorMessage').classList.add('active');
+            } finally {
+                document.getElementById('predictBtn').disabled = false;
+                document.getElementById('loading').classList.remove('active');
+            }
+        });
+
+        function displayResult(result) {
+            const resultContainer = document.getElementById('resultContainer');
+            const resultIcon = document.getElementById('resultIcon');
+            const resultTitle = document.getElementById('resultTitle');
+            const confidenceLabel = document.getElementById('confidenceLabel');
+            const progressFill = document.getElementById('progressFill');
+            const riskFactorsContainer = document.getElementById('riskFactorsContainer');
+            const riskFactorsList = document.getElementById('riskFactorsList');
+
+            const predictions = ['Dropout Risk', 'Enrolled', 'Graduate Likely'];
+            const icons = ['⚠️', '📚', '🎓'];
+            const classes = ['result-dropout', 'result-enrolled', 'result-graduate'];
+
+            resultIcon.textContent = icons[result.prediction];
+            resultIcon.className = 'result-icon ' + classes[result.prediction];
+            resultTitle.textContent = 'Prediction: ' + predictions[result.prediction];
+            resultTitle.style.color = result.prediction === 0 ? '#c00' : (result.prediction === 1 ? '#c90' : '#0a0');
+
+            const confidence = (result.confidence * 100).toFixed(1);
+            confidenceLabel.textContent = `Confidence: ${confidence}%`;
+            progressFill.style.width = confidence + '%';
+            progressFill.textContent = confidence + '%';
+
+            if (result.probabilities) {
+                const probText = `Dropout: ${(result.probabilities[0]*100).toFixed(1)}% | Enrolled: ${(result.probabilities[1]*100).toFixed(1)}% | Graduate: ${(result.probabilities[2]*100).toFixed(1)}%`;
+                if (!document.getElementById('probabilities')) {
+                    const probDiv = document.createElement('div');
+                    probDiv.id = 'probabilities';
+                    probDiv.style.marginTop = '10px';
+                    probDiv.style.color = '#666';
+                    probDiv.style.fontSize = '0.9em';
+                    document.querySelector('.confidence-bar').appendChild(probDiv);
+                }
+                document.getElementById('probabilities').textContent = probText;
+            }
+
+            resultContainer.classList.add('active');
+            resultContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
